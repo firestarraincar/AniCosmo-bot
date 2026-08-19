@@ -1928,6 +1928,11 @@ async def main():
     init_event_db()
     migrate_db()
     load_lots_from_db()
+    asyncio.create_task(start_http_server())
+    
+    # ДОБАВЬ ЭТУ СТРОКУ:
+    await bot.delete_webhook(drop_pending_updates=True)
+    
     print("Рейд-бот успешно запущен!")
     await dp.start_polling(bot)
 
