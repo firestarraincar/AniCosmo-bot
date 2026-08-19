@@ -1,9 +1,18 @@
-import asyncio, logging, sqlite3, random
+import asyncio, logging, sqlite3, random, os
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+try:
+    import psycopg2
+    PSYCOPG2_AVAILABLE = True
+except ImportError:
+    PSYCOPG2_AVAILABLE = False
+def get_db_connection():
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+    if DATABASE_URL and PSYCOPG2_AVAILABLE:
+        return psycopg2.connect(DATABASE_URL, sslmode='require')
+    return sqlite3.connect("anicard_chat_stats.db")
 TOKEN = "8415798182:AAG1-OkNu4Ur9uj4e4mWHD2yjPwNNoMp0JA"
 ADMIN_USERNAME = ["Ale7xey", "femfoy"]
 
@@ -25,7 +34,7 @@ admin_messages = {}
 
 
 def init_event_db():
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS user_profiles (
@@ -49,18 +58,18 @@ def init_event_db():
     )""")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS prizes_pool (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        id SERIAL PRIMARY KEY, 
         prize_text TEXT
     )""")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS user_prizes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        id SERIAL PRIMARY KEY, 
         user_id INTEGER, 
         prize_text TEXT
     )""")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS game_cards (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         rating INTEGER DEFAULT 0,
         price REAL DEFAULT 0,
@@ -69,7 +78,7 @@ def init_event_db():
 
     # ========== ОБЛОЖКИ ==========
     cursor.execute("""CREATE TABLE IF NOT EXISTS covers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         name TEXT UNIQUE NOT NULL,
         rating INTEGER DEFAULT 0,
         price REAL DEFAULT 0,
@@ -79,7 +88,7 @@ def init_event_db():
 
     # ========== КОЛЛЕКЦИОННЫЕ КАРТЫ ==========
     cursor.execute("""CREATE TABLE IF NOT EXISTS collection_cards (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         name TEXT UNIQUE NOT NULL,
         rarity TEXT DEFAULT 'Эпическая',
         price REAL DEFAULT 0,
@@ -101,7 +110,7 @@ def init_event_db():
 
     # ========== ТАБЛИЦА ДЛЯ ЛОТОВ ==========
     cursor.execute("""CREATE TABLE IF NOT EXISTS lots (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         user_id INTEGER,
         username TEXT,
         first_name TEXT,
@@ -120,7 +129,7 @@ def init_event_db():
 
 def migrate_db():
     """Обновляет базу данных - добавляет новые колонки"""
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
@@ -180,7 +189,7 @@ def load_lots_from_db():
     """Загружает все лоты из базы данных при запуске бота"""
     global lot_counter, pending_lots
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -222,7 +231,7 @@ def load_lots_from_db():
 
 def save_lot_to_db(lot_data):
     """Сохраняет или обновляет лот в базе данных"""
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("SELECT id FROM lots WHERE id = ?", (lot_data["id"],))
@@ -269,7 +278,7 @@ def save_lot_to_db(lot_data):
 
 def delete_lot_from_db(lot_id):
     """Удаляет лот из базы данных"""
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM lots WHERE id = ?", (lot_id,))
     conn.commit()
@@ -303,7 +312,7 @@ async def add_card(message: types.Message):
 
     name = " ".join(parts[1:-2])
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
@@ -341,7 +350,7 @@ async def remove_card(message: types.Message):
     name = " ".join(parts[1:-1])
     rating = int(parts[-1])
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM game_cards WHERE name = ? AND rating = ?", (name, rating))
@@ -361,7 +370,7 @@ async def show_all_cards(message: types.Message):
         await message.answer("⛔ Только для админов!")
         return
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT name, rating, price FROM game_cards ORDER BY name, rating")
     cards = cursor.fetchall()
@@ -415,7 +424,7 @@ async def add_cover(message: types.Message):
 
     name = " ".join(parts[1:-2])
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
@@ -448,7 +457,7 @@ async def remove_cover(message: types.Message):
         await message.answer("❌ Используйте: /облминус Название")
         return
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM covers WHERE name = ?", (name,))
@@ -464,7 +473,7 @@ async def remove_cover(message: types.Message):
 @dp.message(Command("обл"))
 async def show_covers(message: types.Message):
     """Показать все обложки: /обл"""
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT id, name, rating, price, emoji, description
@@ -524,7 +533,7 @@ async def add_collection_card(message: types.Message):
         )
         return
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     rarity_emojis = {
@@ -563,7 +572,7 @@ async def remove_collection_card(message: types.Message):
         await message.answer("❌ Используйте: /колминус Название")
         return
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM collection_cards WHERE name = ?", (name,))
@@ -579,7 +588,7 @@ async def remove_collection_card(message: types.Message):
 @dp.message(Command("кол"))
 async def show_collection_cards(message: types.Message):
     """Показать все коллекционные карты: /кол (разбито на 2 части)"""
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT id, name, rarity, price, emoji, description
@@ -654,7 +663,7 @@ async def give_collection_card(message: types.Message):
     card_name = " ".join(parts[2:-1]) if len(parts) > 3 else parts[2]
     quantity = int(parts[-1]) if len(parts) > 3 and parts[-1].isdigit() else 1
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("SELECT user_id FROM user_profiles WHERE username = ?", (f"@{username}",))
@@ -693,7 +702,7 @@ async def show_my_collection_cards(message: types.Message):
     """Показать мои коллекционные карты: /мои_кол"""
     user_id = message.from_user.id
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -768,7 +777,7 @@ async def give_prize_manual_cmd(message: types.Message):
     contact_info = contact_info.strip()
     display_name = target_identifier.replace("@", "")
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("SELECT user_id FROM user_profiles WHERE username = ? LIMIT 1", (target_identifier,))
@@ -822,7 +831,7 @@ async def add_user_manual(message: types.Message):
     target_username = args[1]
     display_name = target_username.replace("@", "")
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT user_id FROM user_profiles WHERE username = ? LIMIT 1", (target_username,))
     if cursor.fetchone():
@@ -851,7 +860,7 @@ async def upgrade_user_short_cmd(message: types.Message):
     target_username = args[1]
     display_name = target_username.replace("@", "")
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT user_id, rank FROM user_profiles WHERE username = ? LIMIT 1", (target_username,))
     row = cursor.fetchone()
@@ -885,7 +894,7 @@ async def downgrade_user_short_cmd(message: types.Message):
     target_username = args[1]
     display_name = target_username.replace("@", "")
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT user_id, rank FROM user_profiles WHERE username = ? LIMIT 1", (target_username,))
     row = cursor.fetchone()
@@ -915,7 +924,7 @@ async def add_prize_cmd(message: types.Message):
         await message.answer("⚠️ Использование: /add_prize Название карты")
         return
     prize_text = args[1]
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO prizes_pool (prize_text) VALUES (?)", (prize_text,))
     conn.commit()
@@ -940,7 +949,7 @@ async def remove_prize_cmd(message: types.Message):
 
     prize_id = int(args[1])
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("SELECT prize_text FROM prizes_pool WHERE id = ?", (prize_id,))
@@ -970,7 +979,7 @@ async def show_prize_pool(message: types.Message):
         await message.answer("⛔ Эта команда доступна только администраторам!")
         return
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("SELECT id, prize_text FROM prizes_pool ORDER BY id ASC")
@@ -1022,7 +1031,7 @@ async def start_event_cmd(message: types.Message):
     event_active = True
     last_speakers.clear()
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM match_damage")
     conn.commit()
@@ -1037,7 +1046,7 @@ async def start_event_cmd(message: types.Message):
 @dp.message(Command("чат"))
 async def show_chat_rules(message: types.Message):
     args = message.text.split()
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("SELECT COUNT(*) FROM user_profiles")
@@ -1098,7 +1107,7 @@ async def show_my_status(message: types.Message):
     username = f"@{message.from_user.username}" if message.from_user.username else "Нет юзернейма"
     first_name = message.from_user.first_name or "Пользователь"
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT message_count, rank FROM user_profiles WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
@@ -1139,7 +1148,7 @@ async def show_my_status(message: types.Message):
 @dp.message(Command("мои_карты"))
 async def show_my_cards(message: types.Message):
     user_id = message.from_user.id
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT prize_text FROM user_prizes WHERE user_id = ? ORDER BY id ASC", (user_id,))
     rows = cursor.fetchall()
@@ -1159,7 +1168,7 @@ async def show_event_top(message: types.Message):
     if not event_active:
         await message.answer("⚔️ Сейчас нет активного события! Ждите запуска рейда от админа.")
         return
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT user_profiles.username, user_profiles.first_name, match_damage.damage_dealt 
@@ -1614,7 +1623,7 @@ async def process_bets(message: types.Message):
         await message.reply("❌ Напишите карты после 'Ставка'")
         return
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     total = 0.0
@@ -1770,7 +1779,7 @@ async def process_event_chat(message: types.Message):
     first_name = message.from_user.first_name or "Охотник"
     current_date = datetime.now().strftime("%Y-%m-%d")
 
-    conn = sqlite3.connect("anicard_chat_stats.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
