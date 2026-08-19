@@ -42,7 +42,7 @@ def init_event_db():
     cursor = conn.cursor()
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS user_profiles (
-        user_id INTEGER PRIMARY KEY, 
+        user_id BIGINT PRIMARY KEY, 
         username TEXT, 
         first_name TEXT, 
         message_count INTEGER DEFAULT 0, 
@@ -57,7 +57,7 @@ def init_event_db():
     )""")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS match_damage (
-        user_id INTEGER PRIMARY KEY, 
+        user_id BIGINT PRIMARY KEY, 
         damage_dealt INTEGER DEFAULT 0
     )""")
 
