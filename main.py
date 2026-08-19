@@ -1936,6 +1936,18 @@ async def start_http_server():
     site = web.TCPSite(runner, host='0.0.0.0', port=8080)
     await site.start()
     print("🌐 HTTP-сервер запущен на порту 8080 для UptimeRobot")
+async def main():
+    init_event_db()
+    migrate_db()
+    load_lots_from_db()
+    asyncio.create_task(start_http_server())
+    
+    await bot.delete_webhook(drop_pending_updates=True)
+    
+    print("Рейд-бот успешно запущен!")
+    await dp.start_polling(bot)
 
+if __name__ == "__main__":
+    asyncio.run(main())
 if __name__ == "__main__":
     asyncio.run(main())
