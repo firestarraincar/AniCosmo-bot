@@ -289,17 +289,17 @@ def save_lot_to_db(lot_data):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id FROM lots WHERE id = ?", (lot_data["id"],))
+    cursor.execute("SELECT id FROM lots WHERE id = %s", (lot_data["id"],))
     exists = cursor.fetchone()
 
     if exists:
         cursor.execute("""
             UPDATE lots SET
-                status = ?,
-                accepted_by = ?,
-                published_by = ?,
-                updated_at = ?
-            WHERE id = ?
+                status = %s,
+                accepted_by = %s,
+                published_by = %s,
+                updated_at = %s
+            WHERE id = %s
         """, (
             lot_data["status"],
             lot_data.get("accepted_by"),
@@ -312,7 +312,7 @@ def save_lot_to_db(lot_data):
             INSERT INTO lots (
                 id, user_id, username, first_name, description, file_id, 
                 status, accepted_by, published_by, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             lot_data["id"],
             lot_data["user_id"],
@@ -335,7 +335,7 @@ def delete_lot_from_db(lot_id):
     """Удаляет лот из базы данных"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM lots WHERE id = ?", (lot_id,))
+    cursor.execute("DELETE FROM lots WHERE id = %s", (lot_id,))
     conn.commit()
     conn.close()
 
@@ -372,7 +372,7 @@ async def add_card(message: types.Message):
 
     try:
         cursor.execute(
-            "INSERT INTO game_cards (name, rating, price) VALUES (?, ?, ?)",
+            "INSERT INTO game_cards (name, rating, price) VALUES (%s, %s, %s)",
             (name, rating, price)
         )
         conn.commit()
@@ -408,7 +408,7 @@ async def remove_card(message: types.Message):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("DELETE FROM game_cards WHERE name = ? AND rating = ?", (name, rating))
+    cursor.execute("DELETE FROM game_cards WHERE name = %s AND rating = %s", (name, rating))
 
     if cursor.rowcount == 0:
         await message.answer(f"❌ Карта {name} с рейтингом {rating} не найдена!")
@@ -484,7 +484,7 @@ async def add_cover(message: types.Message):
 
     try:
         cursor.execute(
-            "INSERT INTO covers (name, rating, price) VALUES (?, ?, ?)",
+            "INSERT INTO covers (name, rating, price) VALUES (%s, %s, %s)",
             (name, rating, price)
         )
         conn.commit()
@@ -515,7 +515,7 @@ async def remove_cover(message: types.Message):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("DELETE FROM covers WHERE name = ?", (name,))
+    cursor.execute("DELETE FROM covers WHERE name = %s", (name,))
     if cursor.rowcount == 0:
         await message.answer(f"❌ Обложка «{name}» не найдена!")
     else:
@@ -599,7 +599,7 @@ async def add_collection_card(message: types.Message):
 
     try:
         cursor.execute(
-            "INSERT INTO collection_cards (name, rarity, price, emoji) VALUES (?, ?, ?, ?)",
+            "INSERT INTO collection_cards (name, rarity, price, emoji) VALUES (%s, %s, %s, %s)",
             (name, rarity, price, rarity_emojis.get(rarity, "🟪"))
         )
         conn.commit()
@@ -630,7 +630,7 @@ async def remove_collection_card(message: types.Message):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("DELETE FROM collection_cards WHERE name = ?", (name,))
+    cursor.execute("DELETE FROM collection_cards WHERE name = %s", (name,))
     if cursor.rowcount == 0:
         await message.answer(f"❌ Карта «{name}» не найдена!")
     else:
@@ -721,7 +721,7 @@ async def give_collection_card(message: types.Message):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT user_id FROM user_profiles WHERE username = ?", (f"@{username}",))
+    cursor.execute("SELECT user_id FROM user_profiles WHERE username = %s", (f"@{username}",))
     user_row = cursor.fetchone()
     if not user_row:
         await message.answer(f"❌ Пользователь @{username} не найден!")
@@ -730,7 +730,7 @@ async def give_collection_card(message: types.Message):
 
     user_id = user_row[0]
 
-    cursor.execute("SELECT id, name FROM collection_cards WHERE name = ?", (card_name,))
+    cursor.execute("SELECT id, name FROM collection_cards WHERE name = %s", (card_name,))
     card_row = cursor.fetchone()
     if not card_row:
         await message.answer(f"❌ Коллекционная карта «{card_name}» не найдена!")
@@ -741,9 +741,9 @@ async def give_collection_card(message: types.Message):
 
     cursor.execute("""
         INSERT INTO user_collection_cards (user_id, card_id, quantity) 
-        VALUES (?, ?, ?)
+        VALUES (%s, %s, %s)
         ON CONFLICT(user_id, card_id) 
-        DO UPDATE SET quantity = quantity + ?
+        DO UPDATE SET quantity = quantity + %s
     """, (user_id, card_id, quantity, quantity))
 
     conn.commit()
@@ -764,7 +764,7 @@ async def show_my_collection_cards(message: types.Message):
         SELECT cc.name, cc.rarity, cc.price, cc.emoji, uc.quantity
         FROM user_collection_cards uc
         JOIN collection_cards cc ON uc.card_id = cc.id
-        WHERE uc.user_id = ?
+        WHERE uc.user_id = %s
         ORDER BY 
             CASE cc.rarity
                 WHEN 'Мифическая' THEN 1
@@ -835,11 +835,11 @@ async def give_prize_manual_cmd(message: types.Message):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT user_id FROM user_profiles WHERE username = ? LIMIT 1", (target_identifier,))
+    cursor.execute("SELECT user_id FROM user_profiles WHERE username = %s LIMIT 1", (target_identifier,))
     user_row = cursor.fetchone()
 
     if not user_row:
-        cursor.execute("SELECT user_id, first_name FROM user_profiles WHERE first_name LIKE ? LIMIT 1",
+        cursor.execute("SELECT user_id, first_name FROM user_profiles WHERE first_name LIKE %s LIMIT 1",
                        (f"%{display_name}%",))
         user_row = cursor.fetchone()
 
@@ -853,7 +853,7 @@ async def give_prize_manual_cmd(message: types.Message):
 
     if user_row:
         target_user_id = user_row[0]
-        cursor.execute("INSERT INTO user_prizes (user_id, prize_text) VALUES (?, ?)", (target_user_id, prize_name))
+        cursor.execute("INSERT INTO user_prizes (user_id, prize_text) VALUES (%s, %s)", (target_user_id, prize_name))
         conn.commit()
 
         try:
@@ -888,14 +888,14 @@ async def add_user_manual(message: types.Message):
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM user_profiles WHERE username = ? LIMIT 1", (target_username,))
+    cursor.execute("SELECT user_id FROM user_profiles WHERE username = %s LIMIT 1", (target_username,))
     if cursor.fetchone():
         await message.answer(f"⚠️ Человек {display_name} уже добавлен ранее!")
         conn.close()
         return
     temp_id = random.randint(10000000, 99999999)
     cursor.execute(
-        "INSERT INTO user_profiles (user_id, username, first_name, message_count, rank) VALUES (?, ?, ?, 0, 0)",
+        "INSERT INTO user_profiles (user_id, username, first_name, message_count, rank) VALUES (%s, %s, %s, 0, 0)",
         (temp_id, target_username, display_name))
     conn.commit()
     conn.close()
@@ -917,7 +917,7 @@ async def upgrade_user_short_cmd(message: types.Message):
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id, rank FROM user_profiles WHERE username = ? LIMIT 1", (target_username,))
+    cursor.execute("SELECT user_id, rank FROM user_profiles WHERE username = %s LIMIT 1", (target_username,))
     row = cursor.fetchone()
 
     if row:
@@ -927,7 +927,7 @@ async def upgrade_user_short_cmd(message: types.Message):
             conn.close()
             return
         new_rank = current_rank + 1
-        cursor.execute("UPDATE user_profiles SET rank = ? WHERE user_id = ?", (new_rank, u_id))
+        cursor.execute("UPDATE user_profiles SET rank = %s WHERE user_id = %s", (new_rank, u_id))
         conn.commit()
         await message.answer(f"⭐ Ранг игрока {display_name} повышен до {new_rank}!")
     else:
@@ -951,7 +951,7 @@ async def downgrade_user_short_cmd(message: types.Message):
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id, rank FROM user_profiles WHERE username = ? LIMIT 1", (target_username,))
+    cursor.execute("SELECT user_id, rank FROM user_profiles WHERE username = %s LIMIT 1", (target_username,))
     row = cursor.fetchone()
 
     if row:
@@ -961,7 +961,7 @@ async def downgrade_user_short_cmd(message: types.Message):
             conn.close()
             return
         new_rank = current_rank - 1
-        cursor.execute("UPDATE user_profiles SET rank = ? WHERE user_id = ?", (new_rank, u_id))
+        cursor.execute("UPDATE user_profiles SET rank = %s WHERE user_id = %s", (new_rank, u_id))
         conn.commit()
         await message.answer(f"📉 Ранг игрока {display_name} понижен до {new_rank}!")
     else:
@@ -981,7 +981,7 @@ async def add_prize_cmd(message: types.Message):
     prize_text = args[1]
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO prizes_pool (prize_text) VALUES (?)", (prize_text,))
+    cursor.execute("INSERT INTO prizes_pool (prize_text) VALUES (%s)", (prize_text,))
     conn.commit()
     conn.close()
     await message.answer(f"📦 Карта добавлена в пул: {prize_text}")
@@ -1007,7 +1007,7 @@ async def remove_prize_cmd(message: types.Message):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT prize_text FROM prizes_pool WHERE id = ?", (prize_id,))
+    cursor.execute("SELECT prize_text FROM prizes_pool WHERE id = %s", (prize_id,))
     row = cursor.fetchone()
 
     if not row:
@@ -1019,7 +1019,7 @@ async def remove_prize_cmd(message: types.Message):
         return
 
     prize_name = row[0]
-    cursor.execute("DELETE FROM prizes_pool WHERE id = ?", (prize_id,))
+    cursor.execute("DELETE FROM prizes_pool WHERE id = %s", (prize_id,))
     conn.commit()
     conn.close()
 
@@ -1123,7 +1123,7 @@ async def show_chat_rules(message: types.Message):
 
         today = datetime.now()
         date_list = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days_num)]
-        placeholders = ",".join(["?"] * len(date_list))
+        placeholders = ",".join(["%s"] * len(date_list))
 
         cursor.execute(f"""
             SELECT p.username, p.first_name, SUM(d.message_count) as total_days_msg
@@ -1164,20 +1164,20 @@ async def show_my_status(message: types.Message):
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT message_count, rank FROM user_profiles WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT message_count, rank FROM user_profiles WHERE user_id = %s", (user_id,))
     row = cursor.fetchone()
 
     if not row:
-        cursor.execute("SELECT rank FROM user_profiles WHERE username = ?", (username,))
+        cursor.execute("SELECT rank FROM user_profiles WHERE username = %s", (username,))
         exist_row = cursor.fetchone()
         if exist_row:
-            cursor.execute("UPDATE user_profiles SET user_id = ?, first_name = ? WHERE username = ?",
+            cursor.execute("UPDATE user_profiles SET user_id = %s, first_name = %s WHERE username = %s",
                            (user_id, first_name, username))
             rank = exist_row[0] if exist_row[0] is not None else 0
             msg_count = 0
         else:
             cursor.execute(
-                "INSERT INTO user_profiles (user_id, username, first_name, message_count, rank) VALUES (?, ?, ?, 0, 0)",
+                "INSERT INTO user_profiles (user_id, username, first_name, message_count, rank) VALUES (%s, %s, %s, 0, 0)",
                 (user_id, username, first_name))
             rank, msg_count = 0, 0
         conn.commit()
@@ -1185,7 +1185,7 @@ async def show_my_status(message: types.Message):
         msg_count, rank = row
         if rank is None: rank = 0
 
-    cursor.execute("SELECT COUNT(*) FROM user_prizes WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT COUNT(*) FROM user_prizes WHERE user_id = %s", (user_id,))
     cards_count = cursor.fetchone()[0]
     conn.close()
 
@@ -1205,7 +1205,7 @@ async def show_my_cards(message: types.Message):
     user_id = message.from_user.id
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT prize_text FROM user_prizes WHERE user_id = ? ORDER BY id ASC", (user_id,))
+    cursor.execute("SELECT prize_text FROM user_prizes WHERE user_id = %s ORDER BY id ASC", (user_id,))
     rows = cursor.fetchall()
     conn.close()
     if not rows:
@@ -1726,7 +1726,7 @@ async def process_bets(message: types.Message):
         # ===== ПОИСК КОЛЛЕКЦИОННОЙ КАРТЫ =====
         if is_collection:
             cursor.execute(
-                "SELECT name, rarity, price, emoji FROM collection_cards WHERE name = ?",
+                "SELECT name, rarity, price, emoji FROM collection_cards WHERE name = %s",
                 (card_name,)
             )
             row = cursor.fetchone()
@@ -1746,7 +1746,7 @@ async def process_bets(message: types.Message):
                 continue
 
             cursor.execute(
-                "SELECT name, rating, price, emoji FROM covers WHERE name = ? AND rating = ?",
+                "SELECT name, rating, price, emoji FROM covers WHERE name = %s AND rating = %s",
                 (card_name, rating)
             )
             row = cursor.fetchone()
@@ -1762,9 +1762,9 @@ async def process_bets(message: types.Message):
         # ===== ПОИСК ОБЫЧНОЙ КАРТЫ =====
         else:
             if rating is None:
-                # Проверяем, может это коллекционная карта без "Кол."?
+                # Проверяем, может это коллекционная карта без "Кол."%s
                 cursor.execute(
-                    "SELECT name, rarity, price, emoji FROM collection_cards WHERE name = ?",
+                    "SELECT name, rarity, price, emoji FROM collection_cards WHERE name = %s",
                     (card_name,)
                 )
                 row = cursor.fetchone()
@@ -1778,7 +1778,7 @@ async def process_bets(message: types.Message):
                 continue
 
             cursor.execute(
-                "SELECT name, rating, price FROM game_cards WHERE name = ? AND rating = ?",
+                "SELECT name, rating, price FROM game_cards WHERE name = %s AND rating = %s",
                 (card_name, rating)
             )
             row = cursor.fetchone()
@@ -1839,13 +1839,13 @@ async def process_event_chat(message: types.Message):
 
     cursor.execute("""
         INSERT INTO user_profiles (user_id, username, first_name, message_count, rank) 
-        VALUES (?, ?, ?, 1, 0)
+        VALUES (%s, %s, %s, 1, 0)
         ON CONFLICT(user_id) DO UPDATE SET message_count = message_count + 1, username = excluded.username, first_name = excluded.first_name
     """, (user_id, username, first_name))
 
     cursor.execute("""
         INSERT INTO daily_stats (user_id, msg_date, message_count) 
-        VALUES (?, ?, 1)
+        VALUES (%s, %s, 1)
         ON CONFLICT(user_id, msg_date) DO UPDATE SET message_count = message_count + 1
     """, (user_id, current_date))
     conn.commit()
@@ -1874,7 +1874,7 @@ async def process_event_chat(message: types.Message):
     boss_hp -= damage
 
     cursor.execute("""
-        INSERT INTO match_damage (user_id, damage_dealt) VALUES (?, ?)
+        INSERT INTO match_damage (user_id, damage_dealt) VALUES (%s, %s)
         ON CONFLICT(user_id) DO UPDATE SET damage_dealt = damage_dealt + excluded.damage_dealt
     """, (user_id, damage))
     conn.commit()
@@ -1890,13 +1890,13 @@ async def process_event_chat(message: types.Message):
             winner_row = cursor.fetchone()
             if winner_row:
                 w_id = winner_row[0]
-                cursor.execute("SELECT username, first_name, rank FROM user_profiles WHERE user_id = ?", (w_id,))
+                cursor.execute("SELECT username, first_name, rank FROM user_profiles WHERE user_id = %s", (w_id,))
                 w_username, w_first_name, current_rank = cursor.fetchone()
                 w_mention = w_username if w_username and w_username != "Нет юзернейма" else w_first_name
 
                 if current_rank < 10:
                     new_rank = current_rank + 1
-                    cursor.execute("UPDATE user_profiles SET rank = ? WHERE user_id = ?", (new_rank, w_id))
+                    cursor.execute("UPDATE user_profiles SET rank = %s WHERE user_id = %s", (new_rank, w_id))
                 else:
                     new_rank = current_rank
 
@@ -1904,8 +1904,8 @@ async def process_event_chat(message: types.Message):
                 prize_row = cursor.fetchone()
                 if prize_row:
                     prize_id, card_name = prize_row
-                    cursor.execute("DELETE FROM prizes_pool WHERE id = ?", (prize_id,))
-                    cursor.execute("INSERT INTO user_prizes (user_id, prize_text) VALUES (?, ?)", (w_id, card_name))
+                    cursor.execute("DELETE FROM prizes_pool WHERE id = %s", (prize_id,))
+                    cursor.execute("INSERT INTO user_prizes (user_id, prize_text) VALUES (%s, %s)", (w_id, card_name))
                     conn.commit()
                     await message.answer(
                         f"🎉 РЕЙД ЗАВЕРШЕН ПОБЕДОЙ! 🏆\n\n🥇 Лучший охотник: {w_mention}\n⭐ Его ранг повышен до: {new_rank}\n🎁 Награда: карта {card_name} добавлена в /мои_карты!"
