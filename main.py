@@ -8,6 +8,9 @@ try:
     PSYCOPG2_AVAILABLE = True
 except ImportError:
     PSYCOPG2_AVAILABLE = False
+def is_postgres():
+    """Проверяет, используем ли мы PostgreSQL"""
+    return os.environ.get("DATABASE_URL") is not None and PSYCOPG2_AVAILABLE
 def get_db_connection():
     DATABASE_URL = os.environ.get("DATABASE_URL")
     if DATABASE_URL and PSYCOPG2_AVAILABLE:
