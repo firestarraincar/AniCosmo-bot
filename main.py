@@ -131,50 +131,103 @@ def migrate_db():
     """Обновляет базу данных - добавляет новые колонки"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    using_postgres = is_postgres()
 
     try:
-        # Проверяем и добавляем колонку rating в covers
-        cursor.execute("PRAGMA table_info(covers)")
-        columns = [col[1] for col in cursor.fetchall()]
+        if using_postgres:
+            # PostgreSQL — проверяем через information_schema
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'covers'
+            """)
+            columns = [row[0] for row in cursor.fetchall()]
 
-        if 'rating' not in columns:
-            print("🔄 Добавляем колонку rating в covers...")
-            cursor.execute("ALTER TABLE covers ADD COLUMN rating INTEGER DEFAULT 0")
-            print("✅ Колонка rating добавлена в covers")
+            if 'rating' not in columns:
+                print("🔄 Добавляем колонку rating в covers...")
+                cursor.execute("ALTER TABLE covers ADD COLUMN rating INTEGER DEFAULT 0")
+                print("✅ Колонка rating добавлена в covers")
 
-        if 'price' not in columns:
-            print("🔄 Добавляем колонку price в covers...")
-            cursor.execute("ALTER TABLE covers ADD COLUMN price REAL DEFAULT 0")
-            print("✅ Колонка price добавлена в covers")
+            if 'price' not in columns:
+                print("🔄 Добавляем колонку price в covers...")
+                cursor.execute("ALTER TABLE covers ADD COLUMN price REAL DEFAULT 0")
+                print("✅ Колонка price добавлена в covers")
 
-        if 'emoji' not in columns:
-            print("🔄 Добавляем колонку emoji в covers...")
-            cursor.execute("ALTER TABLE covers ADD COLUMN emoji TEXT DEFAULT '📁'")
-            print("✅ Колонка emoji добавлена в covers")
+            if 'emoji' not in columns:
+                print("🔄 Добавляем колонку emoji в covers...")
+                cursor.execute("ALTER TABLE covers ADD COLUMN emoji TEXT DEFAULT '📁'")
+                print("✅ Колонка emoji добавлена в covers")
 
-        if 'description' not in columns:
-            print("🔄 Добавляем колонку description в covers...")
-            cursor.execute("ALTER TABLE covers ADD COLUMN description TEXT")
-            print("✅ Колонка description добавлена в covers")
+            if 'description' not in columns:
+                print("🔄 Добавляем колонку description в covers...")
+                cursor.execute("ALTER TABLE covers ADD COLUMN description TEXT")
+                print("✅ Колонка description добавлена в covers")
 
-        # Проверяем таблицу collection_cards
-        cursor.execute("PRAGMA table_info(collection_cards)")
-        columns = [col[1] for col in cursor.fetchall()]
+            # Проверяем таблицу collection_cards
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'collection_cards'
+            """)
+            columns = [row[0] for row in cursor.fetchall()]
 
-        if 'cover_id' not in columns:
-            print("🔄 Добавляем колонку cover_id в collection_cards...")
-            cursor.execute("ALTER TABLE collection_cards ADD COLUMN cover_id INTEGER")
-            print("✅ Колонка cover_id добавлена в collection_cards")
+            if 'cover_id' not in columns:
+                print("🔄 Добавляем колонку cover_id в collection_cards...")
+                cursor.execute("ALTER TABLE collection_cards ADD COLUMN cover_id INTEGER")
+                print("✅ Колонка cover_id добавлена в collection_cards")
 
-        if 'description' not in columns:
-            print("🔄 Добавляем колонку description в collection_cards...")
-            cursor.execute("ALTER TABLE collection_cards ADD COLUMN description TEXT")
-            print("✅ Колонка description добавлена в collection_cards")
+            if 'description' not in columns:
+                print("🔄 Добавляем колонку description в collection_cards...")
+                cursor.execute("ALTER TABLE collection_cards ADD COLUMN description TEXT")
+                print("✅ Колонка description добавлена в collection_cards")
 
-        if 'emoji' not in columns:
-            print("🔄 Добавляем колонку emoji в collection_cards...")
-            cursor.execute("ALTER TABLE collection_cards ADD COLUMN emoji TEXT DEFAULT '🟪'")
-            print("✅ Колонка emoji добавлена в collection_cards")
+            if 'emoji' not in columns:
+                print("🔄 Добавляем колонку emoji в collection_cards...")
+                cursor.execute("ALTER TABLE collection_cards ADD COLUMN emoji TEXT DEFAULT '🟪'")
+                print("✅ Колонка emoji добавлена в collection_cards")
+
+        else:
+            # SQLite — используем PRAGMA
+            cursor.execute("PRAGMA table_info(covers)")
+            columns = [col[1] for col in cursor.fetchall()]
+
+            if 'rating' not in columns:
+                print("🔄 Добавляем колонку rating в covers...")
+                cursor.execute("ALTER TABLE covers ADD COLUMN rating INTEGER DEFAULT 0")
+                print("✅ Колонка rating добавлена в covers")
+
+            if 'price' not in columns:
+                print("🔄 Добавляем колонку price в covers...")
+                cursor.execute("ALTER TABLE covers ADD COLUMN price REAL DEFAULT 0")
+                print("✅ Колонка price добавлена в covers")
+
+            if 'emoji' not in columns:
+                print("🔄 Добавляем колонку emoji в covers...")
+                cursor.execute("ALTER TABLE covers ADD COLUMN emoji TEXT DEFAULT '📁'")
+                print("✅ Колонка emoji добавлена в covers")
+
+            if 'description' not in columns:
+                print("🔄 Добавляем колонку description в covers...")
+                cursor.execute("ALTER TABLE covers ADD COLUMN description TEXT")
+                print("✅ Колонка description добавлена в covers")
+
+            cursor.execute("PRAGMA table_info(collection_cards)")
+            columns = [col[1] for col in cursor.fetchall()]
+
+            if 'cover_id' not in columns:
+                print("🔄 Добавляем колонку cover_id в collection_cards...")
+                cursor.execute("ALTER TABLE collection_cards ADD COLUMN cover_id INTEGER")
+                print("✅ Колонка cover_id добавлена в collection_cards")
+
+            if 'description' not in columns:
+                print("🔄 Добавляем колонку description в collection_cards...")
+                cursor.execute("ALTER TABLE collection_cards ADD COLUMN description TEXT")
+                print("✅ Колонка description добавлена в collection_cards")
+
+            if 'emoji' not in columns:
+                print("🔄 Добавляем колонку emoji в collection_cards...")
+                cursor.execute("ALTER TABLE collection_cards ADD COLUMN emoji TEXT DEFAULT '🟪'")
+                print("✅ Колонка emoji добавлена в collection_cards")
 
         conn.commit()
         print("✅ Миграция базы данных завершена!")
@@ -183,7 +236,6 @@ def migrate_db():
         print(f"❌ Ошибка при миграции: {e}")
 
     conn.close()
-
 
 def load_lots_from_db():
     """Загружает все лоты из базы данных при запуске бота"""
