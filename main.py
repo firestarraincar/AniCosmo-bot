@@ -1,4 +1,5 @@
 import asyncio, logging, sqlite3, random, os
+from aiohttp import web
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -1924,17 +1925,17 @@ async def process_event_chat(message: types.Message):
 
 # ==================== ЗАПУСК ====================
 
-async def main():
-    init_event_db()
-    migrate_db()
-    load_lots_from_db()
-    asyncio.create_task(start_http_server())
-    
-    # ДОБАВЬ ЭТУ СТРОКУ:
-    await bot.delete_webhook(drop_pending_updates=True)
-    
-    print("Рейд-бот успешно запущен!")
-    await dp.start_polling(bot)
+async def health_check(request):
+    return web.Response(text="OK", status=200)
+
+async def start_http_server():
+    app = web.Application()
+    app.router.add_get('/health', health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host='0.0.0.0', port=8080)
+    await site.start()
+    print("🌐 HTTP-сервер запущен на порту 8080 для UptimeRobot")
 
 if __name__ == "__main__":
     asyncio.run(main())
