@@ -383,7 +383,7 @@ async def add_card(message: types.Message):
             f"⭐ Рейтинг: {rating}\n"
             f"💰 Цена: {price_str} ПТ"
         )
-    except sqlite3.IntegrityError:
+    except Exception:
         await message.answer(f"❌ Карта {name} с рейтингом {rating} уже существует!")
 
     conn.close()
@@ -495,7 +495,7 @@ async def add_cover(message: types.Message):
             f"⭐ Рейтинг: {rating}\n"
             f"💰 Цена: {price_str} ПТ"
         )
-    except sqlite3.IntegrityError:
+    except Exception:
         await message.answer(f"❌ Обложка «{name}» уже существует!")
 
     conn.close()
@@ -610,7 +610,7 @@ async def add_collection_card(message: types.Message):
             f"{rarity_emojis.get(rarity, '🟪')} Редкость: {rarity}\n"
             f"💰 Цена: {price_str} ПТ"
         )
-    except sqlite3.IntegrityError:
+    except Exception:
         await message.answer(f"❌ Карта «{name}» уже существует!")
 
     conn.close()
@@ -1947,7 +1947,5 @@ async def main():
     print("Рейд-бот успешно запущен!")
     await dp.start_polling(bot)
 
-if __name__ == "__main__":
-    asyncio.run(main())
 if __name__ == "__main__":
     asyncio.run(main())
