@@ -1,7 +1,8 @@
 import asyncio, logging, sqlite3, random, os
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
+from aiogram import types
+from aiogram.dispatcher.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 try:
     import psycopg2
