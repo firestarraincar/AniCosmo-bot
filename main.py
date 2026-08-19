@@ -17,7 +17,7 @@ def get_db_connection():
     if DATABASE_URL and PSYCOPG2_AVAILABLE:
         return psycopg2.connect(DATABASE_URL, sslmode='require')
     return sqlite3.connect("anicard_chat_stats.db")
-TOKEN = "8415798182:AAG1-OkNu4Ur9uj4e4mWHD2yjPwNNoMp0JA"
+TOKEN = os.environ.get("TOKEN")
 ADMIN_USERNAME = ["Ale7xey", "femfoy"]
 
 logging.basicConfig(level=logging.INFO)
