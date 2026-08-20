@@ -45,20 +45,20 @@ def init_event_db():
         user_id BIGINT PRIMARY KEY, 
         username TEXT, 
         first_name TEXT, 
-        message_count INTEGER DEFAULT 0, 
-        rank INTEGER DEFAULT 0
+        message_count BIGINT DEFAULT 0, 
+        rank BIGINT DEFAULT 0
     )""")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS daily_stats (
-        user_id INTEGER, 
+        user_id BIGINT, 
         msg_date TEXT, 
-        message_count INTEGER DEFAULT 0, 
+        message_count BIGINT DEFAULT 0, 
         PRIMARY KEY (user_id, msg_date)
     )""")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS match_damage (
         user_id BIGINT PRIMARY KEY, 
-        damage_dealt INTEGER DEFAULT 0
+        damage_dealt BIGINT DEFAULT 0
     )""")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS prizes_pool (
@@ -68,14 +68,14 @@ def init_event_db():
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS user_prizes (
         id SERIAL PRIMARY KEY, 
-        user_id INTEGER, 
+        user_id BIGINT, 
         prize_text TEXT
     )""")
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS game_cards (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
-        rating INTEGER DEFAULT 0,
+        rating BIGINT DEFAULT 0,
         price REAL DEFAULT 0,
         UNIQUE(name, rating)
     )""")
@@ -84,7 +84,7 @@ def init_event_db():
     cursor.execute("""CREATE TABLE IF NOT EXISTS covers (
         id SERIAL PRIMARY KEY,
         name TEXT UNIQUE NOT NULL,
-        rating INTEGER DEFAULT 0,
+        rating BIGINT DEFAULT 0,
         price REAL DEFAULT 0,
         emoji TEXT DEFAULT '📁',
         description TEXT
@@ -98,15 +98,15 @@ def init_event_db():
         price REAL DEFAULT 0,
         emoji TEXT DEFAULT '🟪',
         description TEXT,
-        cover_id INTEGER,
+        cover_id BIGINT,
         FOREIGN KEY (cover_id) REFERENCES covers(id)
     )""")
 
     # ========== КОЛЛЕКЦИИ ИГРОКОВ ==========
     cursor.execute("""CREATE TABLE IF NOT EXISTS user_collection_cards (
-        user_id INTEGER,
-        card_id INTEGER,
-        quantity INTEGER DEFAULT 1,
+        user_id BIGINT,
+        card_id BIGINT,
+        quantity BIGINT DEFAULT 1,
         acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (user_id, card_id),
         FOREIGN KEY (card_id) REFERENCES collection_cards(id)
@@ -115,21 +115,20 @@ def init_event_db():
     # ========== ТАБЛИЦА ДЛЯ ЛОТОВ ==========
     cursor.execute("""CREATE TABLE IF NOT EXISTS lots (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER,
+        user_id BIGINT,
         username TEXT,
         first_name TEXT,
         description TEXT,
         file_id TEXT,
         status TEXT DEFAULT 'pending',
-        accepted_by INTEGER,
-        published_by INTEGER,
+        accepted_by BIGINT,
+        published_by BIGINT,
         created_at TEXT,
         updated_at TEXT
     )""")
 
     conn.commit()
     conn.close()
-
 
 def migrate_db():
     """Обновляет базу данных - добавляет новые колонки"""
@@ -149,7 +148,7 @@ def migrate_db():
 
             if 'rating' not in columns:
                 print("🔄 Добавляем колонку rating в covers...")
-                cursor.execute("ALTER TABLE covers ADD COLUMN rating INTEGER DEFAULT 0")
+                cursor.execute("ALTER TABLE covers ADD COLUMN rating BIGINT DEFAULT 0")
                 print("✅ Колонка rating добавлена в covers")
 
             if 'price' not in columns:
@@ -177,7 +176,7 @@ def migrate_db():
 
             if 'cover_id' not in columns:
                 print("🔄 Добавляем колонку cover_id в collection_cards...")
-                cursor.execute("ALTER TABLE collection_cards ADD COLUMN cover_id INTEGER")
+                cursor.execute("ALTER TABLE collection_cards ADD COLUMN cover_id BIGINT")
                 print("✅ Колонка cover_id добавлена в collection_cards")
 
             if 'description' not in columns:
@@ -197,7 +196,7 @@ def migrate_db():
 
             if 'rating' not in columns:
                 print("🔄 Добавляем колонку rating в covers...")
-                cursor.execute("ALTER TABLE covers ADD COLUMN rating INTEGER DEFAULT 0")
+                cursor.execute("ALTER TABLE covers ADD COLUMN rating BIGINT DEFAULT 0")
                 print("✅ Колонка rating добавлена в covers")
 
             if 'price' not in columns:
@@ -220,7 +219,7 @@ def migrate_db():
 
             if 'cover_id' not in columns:
                 print("🔄 Добавляем колонку cover_id в collection_cards...")
-                cursor.execute("ALTER TABLE collection_cards ADD COLUMN cover_id INTEGER")
+                cursor.execute("ALTER TABLE collection_cards ADD COLUMN cover_id BIGINT")
                 print("✅ Колонка cover_id добавлена в collection_cards")
 
             if 'description' not in columns:
